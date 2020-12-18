@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Resources:
+
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: LambdaFunction
+      Description: Example lambda function firing.
+      CodeUri: lambdaFunction/
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 10
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - SQSPollerPolicy:
+            QueueName: !GetAtt MyQueue.Arn
+      Events:
+        SQSQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MyQueue.Arn
+            Enabled: true
+
+  MyTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      FifoTopic: true
+      TopicName: MyTopic.fifo
+      Subscription:
+        - Endpoint: !GetAtt MyQueue.Arn
+          Protocol: sqs
+
+  MyQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: MyQueue.fifo
+      MessageRetentionPeriod: 345600
+      DelaySeconds: 0
+      VisibilityTimeout: 11
+      FifoQueue: true
+      ContentBasedDeduplication: true
+
+  MyQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt MyQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref MyTopic
+      Queues:
+        - !Ref MyQueue
