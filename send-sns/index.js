@@ -3,7 +3,7 @@ const sns = new AWS.SNS({ region: 'us-east-1' });
 
 async function sendMessages() {
 	const params = {
-		TopicArn: 'arn:aws:sns:us-east-1:973435562475:MyTopic.fifo',
+		TopicArn: 'arn:aws:sns:us-east-1:0123456789012:MyTopic.fifo',
 		MessageGroupId: 'test-group',
 		MessageDeduplicationId: 'abc123',
 	};
